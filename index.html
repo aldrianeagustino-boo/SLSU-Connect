@@ -1,616 +1,541 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SLSU Connect — Online Shared Prototype</title>
-    <!-- Firebase SDKs (Compat Version para sa direktang pagtakbo sa browser) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SLSU Connect - Academic & Group Workspace</title>
+  
+  <!-- Google Fonts & Font Awesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        :root {
-            --primary: #003366; --accent: #0066cc; --success: #10b981;
-            --warning: #f59e0b; --danger: #ef4444; --reviewer: #7c3aed;
-            --light: #f5f7fa; --card: #fff; --text: #1a1a1a; --muted: #6b7280;
-            --shadow-sm: 0 2px 6px rgba(0,0,0,.08); --shadow-md: 0 4px 12px rgba(0,0,0,.1);
-        }
-        body { background: var(--light); min-height: 100vh; padding: 1rem; max-width: 600px; margin: 0 auto; }
-        
-        /* Auth Screens */
-        .auth-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 85vh; }
-        .auth-card { background: var(--card); padding: 2rem; border-radius: 16px; box-shadow: var(--shadow-md); width: 100%; max-width: 420px; }
-        .auth-card h2 { color: var(--primary); text-align: center; margin-bottom: 1.5rem; }
-        .auth-card p.subtext { text-align: center; color: var(--muted); margin-bottom: 1.5rem; font-size: .9rem; }
-        .auth-switch { text-align: center; margin-top: 1.25rem; font-size: .9rem; }
-        .auth-switch a { color: var(--accent); cursor: pointer; font-weight: 500; }
-        .error-msg { color: var(--danger); font-size: .85rem; margin: .5rem 0; min-height: 1.2rem; }
-        
-        .hidden { display: none !important; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: .75rem; }
-        .header-brand h1 { color: var(--primary); font-size: 1.4rem; }
-        .tagline { color: var(--muted); font-size: .85rem; }
-        .user-bar { display: flex; align-items: center; gap: .75rem; }
-        .user-greeting { font-size: .9rem; color: var(--muted); }
-        
-        .btn { padding: .6rem 1rem; border: none; border-radius: 8px; font-size: .9rem; font-weight: 500; cursor: pointer; transition: all .2s; }
-        .btn:hover { opacity: .9; transform: translateY(-1px); }
-        .btn-primary { background: var(--accent); color: white; width: 100%; }
-        .btn-secondary { background: #e5e7eb; color: var(--text); }
-        .btn-danger { background: var(--danger); color: white; }
-        
-        nav { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-        .tab { flex: 1; padding: .75rem; border: none; border-radius: 8px; background: #e5e7eb; cursor: pointer; font-weight: 500; font-size: .9rem; }
-        .tab.active { background: var(--primary); color: white; }
-        .section { display: none; }
-        .section.show { display: block; }
-        
-        .card { background: var(--card); padding: 1.25rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: var(--shadow-sm); }
-        .card h3 { font-size: 1rem; margin-bottom: .75rem; color: var(--primary); }
-        .card h4 { font-size: .9rem; margin: .75rem 0 .5rem; color: var(--reviewer); }
-        
-        input, textarea, select { width: 100%; padding: .75rem; margin: .3rem 0; border: 1px solid #ddd; border-radius: 8px; font-size: .95rem; }
-        textarea { min-height: 100px; resize: vertical; }
-        
-        .item { padding: .75rem 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; }
-        .item:last-child { border: none; }
-        .label { display: inline-block; padding: .2rem .5rem; border-radius: 4px; font-size: .75rem; margin-left: .5rem; }
-        .label-pending { background: #fef3c7; color: #92400e; }
-        .label-progress { background: #dbeafe; color: #1e40af; }
-        .label-done { background: #d1fae5; color: #065f46; }
-        .label-overdue { background: #fee2e2; color: #991b1b; }
-        .delete-btn { background: var(--danger); padding: .4rem .6rem; font-size: .8rem; width: auto; color: white; }
-        .empty { color: var(--muted); font-style: italic; text-align: center; padding: 1.5rem 1rem; }
-        
-        .group-code-badge { background: #e0f2fe; color: #0369a1; padding: .4rem .75rem; border-radius: 6px; font-weight: bold; font-family: monospace; display: inline-block; margin-bottom: .5rem; letter-spacing: 1px; }
-        .progress-bar-bg { background: #e5e7eb; height: 10px; border-radius: 5px; overflow: hidden; margin: .5rem 0 1rem; }
-        .progress-bar-fill { background: var(--success); height: 100%; width: 0%; transition: width .3s ease; }
-        .activity-log { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: .75rem; max-height: 150px; overflow-y: auto; font-size: .8rem; color: #475569; }
-        .activity-item { margin-bottom: .3rem; padding-bottom: .3rem; border-bottom: 1px dashed #cbd5e1; }
-        .flex-gap { display: flex; gap: .5rem; }
-        footer { margin-top: 2rem; text-align: center; font-size: .8rem; color: var(--muted); }
-    </style>
+  <!-- Firebase v9 Compatibility SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #3b82f6;
+      --accent: #f59e0b;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background-color: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+    /* Auth Overlay */
+    #auth-screen {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .auth-card {
+      background: var(--surface); padding: 2.5rem; border-radius: var(--radius);
+      width: 100%; max-width: 400px; box-shadow: var(--shadow); text-align: center;
+    }
+    .auth-card h2 { color: var(--primary); margin-bottom: 0.5rem; }
+    .auth-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+    /* Forms & Inputs */
+    .form-group { margin-bottom: 1rem; text-align: left; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .form-control {
+      width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 8px;
+      outline: none; transition: border-color 0.2s;
+    }
+    .form-control:focus { border-color: var(--primary-light); }
+    .btn {
+      width: 100%; padding: 0.75rem; background: var(--primary); color: white; border: none;
+      border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .btn:hover { background: var(--primary-light); }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .auth-toggle { margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; }
+
+    /* Layout Structure */
+    #app { display: flex; width: 100vw; height: 100vh; }
+    sidebar {
+      width: 260px; background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; justify-content: space-between; padding: 1.5rem;
+    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; color: var(--primary); font-weight: 700; font-size: 1.25rem; }
+    .nav-list { list-style: none; margin-top: 2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .nav-item {
+      padding: 0.75rem 1rem; border-radius: 8px; color: var(--text-muted); font-weight: 500;
+      cursor: pointer; display: flex; align-items: center; gap: 0.75rem; transition: all 0.2s;
+    }
+    .nav-item:hover, .nav-item.active { background: #eff6ff; color: var(--primary-light); }
+
+    main { flex: 1; overflow-y: auto; padding: 2rem; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Header & Cards */
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+    .card {
+      background: var(--surface); padding: 1.5rem; border-radius: var(--radius);
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+    }
+
+    /* Group Workspaces */
+    .workspace-tools { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+    .task-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem; border-bottom: 1px solid var(--border);
+    }
+    .task-item:last-child { border-bottom: none; }
+    .progress-bar-bg { width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 0.5rem; }
+    .progress-bar-fill { height: 100%; background: var(--primary-light); width: 0%; transition: width 0.3s; }
+
+    .hidden { display: none !important; }
+  </style>
 </head>
 <body>
 
-    <!-- AUTH SCREENS -->
-    <div id="authPage" class="auth-container">
-        <div id="signInCard" class="auth-card">
-            <h2>Welcome Back 👋</h2>
-            <p class="subtext">Sign in to access SLSU Connect</p>
-            <form id="signInForm">
-                <input type="email" id="si_email" placeholder="Email Address" required>
-                <input type="password" id="si_pass" placeholder="Password" required>
-                <p class="error-msg" id="si_error"></p>
-                <button type="submit" class="btn btn-primary">Sign In</button>
-            </form>
-            <div class="auth-switch">Don't have an account? <a id="goSignUp">Sign Up</a></div>
+  <!-- AUTHENTICATION MODAL -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <div id="login-form">
+        <h2>SLSU Connect</h2>
+        <p>Sign in to access your dashboard</p>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="login-email" class="form-control" placeholder="student@slsu.edu.ph" required />
         </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-pass" class="form-control" placeholder="••••••••" required />
+        </div>
+        <button class="btn" onclick="handleLogin()">Sign In</button>
+        <div class="auth-toggle" onclick="toggleAuth('signup')">Don't have an account? Sign Up</div>
+      </div>
 
-        <div id="signUpCard" class="auth-card hidden">
-            <h2>Create Account ✨</h2>
-            <p class="subtext">Join SLSU Connect today</p>
-            <form id="signUpForm">
-                <input type="text" id="su_name" placeholder="Your Name" required>
-                <input type="email" id="su_email" placeholder="Email Address" required>
-                <input type="password" id="su_pass" placeholder="Password (min 6 chars)" required>
-                <p class="error-msg" id="su_error"></p>
-                <button type="submit" class="btn btn-primary">Create Account</button>
-            </form>
-            <div class="auth-switch">Already have an account? <a id="goSignIn">Sign In</a></div>
+      <div id="signup-form" class="hidden">
+        <h2>Create Account</h2>
+        <p>Join SLSU Connect workspace</p>
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="signup-name" class="form-control" placeholder="Juan Dela Cruz" required />
         </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="signup-email" class="form-control" placeholder="student@slsu.edu.ph" required />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="signup-pass" class="form-control" placeholder="••••••••" required />
+        </div>
+        <button class="btn" onclick="handleSignup()">Sign Up</button>
+        <div class="auth-toggle" onclick="toggleAuth('login')">Already have an account? Sign In</div>
+      </div>
     </div>
+  </div>
 
-    <!-- MAIN APP -->
-    <div id="appPage" class="hidden">
-        <header>
-            <div class="header-brand">
-                <h1>SLSU Connect</h1>
-                <p class="tagline">Simple • Cloud-Connected • Realtime Portal</p>
-            </div>
-            <div class="user-bar">
-                <span class="user-greeting" id="greeting"></span>
-                <button class="btn btn-secondary" id="signOutBtn">Sign Out</button>
-            </div>
-        </header>
-
-        <nav>
-            <button class="tab active" data-sec="schedule">Schedule</button>
-            <button class="tab" data-sec="deadlines">Deadlines</button>
-            <button class="tab" data-sec="grouptasks">Group Tasks 🌐</button>
-            <button class="tab" data-sec="reviewer">Reviewer Pad</button>
-        </nav>
-
-        <!-- SCHEDULE SECTION -->
-        <div id="schedule" class="section show">
-            <div class="card">
-                <h3>Add Class Schedule</h3>
-                <form id="scheduleForm">
-                    <input name="subject" placeholder="Subject / Course" required>
-                    <input name="day" placeholder="Day (e.g., Mon, Wed, Fri)" required>
-                    <input name="time" placeholder="Time (e.g., 8:00 AM – 9:30 AM)" required>
-                    <button type="submit" class="btn btn-primary">Add Schedule</button>
-                </form>
-            </div>
-            <div class="card">
-                <h3>My Semester Schedule</h3>
-                <div id="scheduleList"></div>
-            </div>
+  <!-- MAIN APP LAYOUT -->
+  <div id="app">
+    <sidebar>
+      <div>
+        <div class="brand">
+          <i class="fa-solid fa-graduation-cap"></i> SLSU Connect
         </div>
+        <ul class="nav-list">
+          <li class="nav-item active" onclick="switchTab('schedule', this)">
+            <i class="fa-solid fa-calendar-days"></i> Schedule
+          </li>
+          <li class="nav-item" onclick="switchTab('deadlines', this)">
+            <i class="fa-solid fa-clock"></i> Deadlines
+          </li>
+          <li class="nav-item" onclick="switchTab('reviewer', this)">
+            <i class="fa-solid fa-book-open"></i> Reviewer Pad
+          </li>
+          <li class="nav-item" onclick="switchTab('workspace', this)">
+            <i class="fa-solid fa-users-gear"></i> Workspaces
+          </li>
+        </ul>
+      </div>
+      <div>
+        <p id="user-display-name" style="font-weight:600; font-size:0.9rem;"></p>
+        <button class="btn btn-secondary" onclick="handleLogout()" style="margin-top:0.5rem;">Logout</button>
+      </div>
+    </sidebar>
 
-        <!-- DEADLINES SECTION -->
-        <div id="deadlines" class="section">
-            <div class="card">
-                <h3>Add Deadline</h3>
-                <form id="deadlineForm">
-                    <input name="title" placeholder="Assignment / Task" required>
-                    <input name="duedate" type="date" required>
-                    <button type="submit" class="btn btn-primary">Add Deadline</button>
-                </form>
-            </div>
-            <div class="card">
-                <h3>Upcoming Deadlines</h3>
-                <div id="deadlineList"></div>
-            </div>
+    <main>
+      <!-- SCHEDULE SECTION -->
+      <section id="schedule" class="section active">
+        <div class="header-bar">
+          <h2>Class Schedule</h2>
+          <button class="btn" style="width:auto;" onclick="addScheduleItem()">+ Add Subject</button>
         </div>
+        <div class="grid" id="schedule-grid"></div>
+      </section>
 
-        <!-- ONLINE GROUP TASKS SECTION -->
-        <div id="grouptasks" class="section">
-            <div class="card">
-                <h3>🌐 Live Online Group Projects</h3>
-                <div id="groupSelectArea">
-                    <select id="groupDropdown" style="margin-bottom: .75rem;">
-                        <option value="">-- Select a Group Project --</option>
-                    </select>
-                    <div class="flex-gap">
-                        <button class="btn btn-secondary" id="btnShowCreateGroup" style="flex:1;">+ Create New Group</button>
-                        <button class="btn btn-secondary" id="btnShowJoinGroup" style="flex:1;">🔑 Join via Code</button>
-                    </div>
-                </div>
-
-                <form id="createGroupForm" class="hidden" style="margin-top: 1rem;">
-                    <h4>Create Online Workspace</h4>
-                    <input id="newGroupName" placeholder="Group Title (e.g. Research Chapter 1)" required>
-                    <div class="flex-gap" style="margin-top: .5rem;">
-                        <button type="submit" class="btn btn-primary">Create & Sync</button>
-                        <button type="button" class="btn btn-secondary" onclick="hideGroupForms()">Cancel</button>
-                    </div>
-                </form>
-
-                <form id="joinGroupForm" class="hidden" style="margin-top: 1rem;">
-                    <h4>Join Online Workspace</h4>
-                    <input id="joinGroupCode" placeholder="Enter 6-digit Code (e.g. JGE-8X2A)" required style="text-transform: uppercase;">
-                    <div class="flex-gap" style="margin-top: .5rem;">
-                        <button type="submit" class="btn btn-primary">Join Workspace</button>
-                        <button type="button" class="btn btn-secondary" onclick="hideGroupForms()">Cancel</button>
-                    </div>
-                </form>
-            </div>
-
-            <div id="activeGroupWorkspace" class="hidden">
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div>
-                            <h3 id="displayGroupName" style="margin-bottom:.25rem;">Group Name</h3>
-                            <span class="group-code-badge" id="displayGroupCode">CODE: ------</span>
-                        </div>
-                        <button class="btn btn-secondary" onclick="leaveCurrentGroup()" style="font-size:.75rem; padding:.3rem .6rem;">Leave</button>
-                    </div>
-
-                    <div style="margin-top: .5rem;">
-                        <div style="display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted);">
-                            <span>Overall Progress</span>
-                            <span id="progressPercent">0%</span>
-                        </div>
-                        <div class="progress-bar-bg">
-                            <div class="progress-bar-fill" id="progressBarFill"></div>
-                        </div>
-                    </div>
-
-                    <h4>Add Group Task</h4>
-                    <form id="taskForm">
-                        <input name="task" placeholder="Task Description" required>
-                        <select name="assignee" id="assigneeSelect" required>
-                            <option value="">-- Assign To Member --</option>
-                        </select>
-                        <select name="status" required>
-                            <option value="Not Started">Not Started</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Done">Done</option>
-                        </select>
-                        <button type="submit" class="btn btn-primary" style="margin-top:.5rem;">Add & Sync Task</button>
-                    </form>
-                </div>
-
-                <div class="card">
-                    <h3>📋 Member Task Board (Real-Time)</h3>
-                    <div id="taskList"></div>
-                </div>
-
-                <div class="card">
-                    <h3>📜 Activity Log</h3>
-                    <div class="activity-log" id="activityLog"></div>
-                </div>
-            </div>
+      <!-- DEADLINES SECTION -->
+      <section id="deadlines" class="section">
+        <div class="header-bar">
+          <h2>Academic Deadlines</h2>
+          <button class="btn" style="width:auto;" onclick="addDeadlineItem()">+ Add Task</button>
         </div>
+        <div class="grid" id="deadlines-grid"></div>
+      </section>
 
-        <!-- REVIEWER PAD SECTION -->
-        <div id="reviewer" class="section">
-            <div class="card">
-                <h3>📝 Add Reviewer / Note</h3>
-                <form id="reviewerForm">
-                    <input name="rev_subject" placeholder="Subject / Topic" required>
-                    <input name="rev_topic" placeholder="Topic / Coverage" required>
-                    <textarea name="rev_notes" placeholder="Key points, definitions, formulas..." required></textarea>
-                    <select name="rev_priority">
-                        <option value="High">🔴 High Priority</option>
-                        <option value="Medium" selected>🟡 Medium Priority</option>
-                        <option value="Low">🟢 Low Priority</option>
-                    </select>
-                    <button type="submit" class="btn btn-primary" style="background: var(--reviewer);">Save Reviewer</button>
-                </form>
-            </div>
-            <div class="card">
-                <h3>📚 My Reviewer Pad</h3>
-                <div id="reviewerList"></div>
-            </div>
+      <!-- REVIEWER PAD SECTION -->
+      <section id="reviewer" class="section">
+        <div class="header-bar">
+          <h2>Reviewer Pad</h2>
+          <button class="btn" style="width:auto;" onclick="addReviewNote()">+ New Note</button>
         </div>
+        <div class="grid" id="reviewer-grid"></div>
+      </section>
 
-        <footer>SLSU Connect — Online Realtime Synchronization</footer>
-    </div>
+      <!-- WORKSPACE SECTION (REALTIME GROUP WORK) -->
+      <section id="workspace" class="section">
+        <div class="header-bar">
+          <h2>Group Workspaces</h2>
+        </div>
+        <div class="workspace-tools">
+          <button class="btn" style="width:auto;" onclick="createWorkspace()">Create Workspace</button>
+          <button class="btn btn-secondary" style="width:auto;" onclick="joinWorkspace()">Join Workspace via Code</button>
+        </div>
+        
+        <div id="active-workspace" class="card hidden">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <div>
+              <h3 id="ws-title">Workspace Name</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted);">Room Code: <strong id="ws-code">----</strong></p>
+            </div>
+            <button class="btn btn-secondary" style="width:auto;" onclick="leaveWorkspace()">Exit Room</button>
+          </div>
 
-    <script>
-        // FIREBASE CONFIGURATION (slsu-connect)
-        const firebaseConfig = {
-            apiKey: "AIzaSyBjKsfaaGdInNf-qVjv-mBNw3pPfGcGpUk",
-            authDomain: "slsu-connect.firebaseapp.com",
-            databaseURL: "https://slsu-connect-default-rtdb.firebaseio.com",
-            projectId: "slsu-connect",
-            storageBucket: "slsu-connect.firebasestorage.app",
-            messagingSenderId: "818712324955",
-            appId: "1:818712324955:web:af426e9fee76268dabc87e",
-            measurementId: "G-STSYQX583S"
-        };
+          <div style="margin-bottom: 1.5rem;">
+            <label style="font-size:0.85rem; font-weight:600;">Overall Group Progress</label>
+            <div class="progress-bar-bg">
+              <div id="ws-progress" class="progress-bar-fill"></div>
+            </div>
+          </div>
 
-        // Initialize Firebase Realtime Connection
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+          <div class="form-group" style="display:flex; gap:0.5rem;">
+            <input type="text" id="ws-task-input" class="form-control" placeholder="Add a shared group task..." />
+            <button class="btn" style="width:auto;" onclick="addWorkspaceTask()">Add</button>
+          </div>
 
-        // HELPERS
-        const $ = id => document.getElementById(id);
-        const fmtDate = d => new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
-        const genCode = () => 'JGE-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+          <div id="ws-tasks-list" style="margin-top:1rem;"></div>
+        </div>
+      </section>
+    </main>
+  </div>
 
-        // AUTH & USER STATE
-        let currentUser = JSON.parse(localStorage.getItem('sm_activeUser')) || null;
-        let users = JSON.parse(localStorage.getItem('sm_users')) || [];
+  <!-- MAIN SCRIPT WITH YOUR FIREBASE CONFIG -->
+  <script>
+    // --- 1. FIREBASE INITIALIZATION ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjKsfaaGdInNf-qVjv-mBNw3pPfGcGpUk",
+      authDomain: "slsu-connect.firebaseapp.com",
+      databaseURL: "https://slsu-connect-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "slsu-connect",
+      storageBucket: "slsu-connect.firebasestorage.app",
+      messagingSenderId: "818712324955",
+      appId: "1:818712324955:web:af426e9fee76268dabc87e",
+      measurementId: "G-STSYQX583S"
+    };
 
-        function saveUsers() { localStorage.setItem('sm_users', JSON.stringify(users)); }
-        function setActiveUser(user) { currentUser = user; localStorage.setItem('sm_activeUser', JSON.stringify(user)); }
-        function clearActiveUser() { localStorage.removeItem('sm_activeUser'); currentUser = null; }
+    // Initialize Firebase Services
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    firebase.analytics();
 
-        $('goSignUp').onclick = () => { $('signInCard').classList.add('hidden'); $('signUpCard').classList.remove('hidden'); };
-        $('goSignIn').onclick = () => { $('signUpCard').classList.add('hidden'); $('signInCard').classList.remove('hidden'); };
+    // --- 2. LOCAL STATE & STORAGE ---
+    let currentUser = JSON.parse(localStorage.getItem('slsu_user')) || null;
+    let localData = JSON.parse(localStorage.getItem('slsu_data')) || {
+      schedules: [],
+      deadlines: [],
+      reviewers: []
+    };
+    let currentWorkspaceId = null;
 
-        $('signUpForm').addEventListener('submit', e => {
-            e.preventDefault();
-            const name = $('su_name').value.trim();
-            const email = $('su_email').value.trim().toLowerCase();
-            const pass = $('su_pass').value;
+    // --- 3. HELPER FUNCTIONS ---
+    function safeText(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
 
-            if (users.find(u => u.email === email)) return alert('Email already registered');
-            const newUser = { id: Date.now(), name, email, password: pass, schedule: [], deadlines: [], joinedGroupCodes: [], reviewers: [] };
-            users.push(newUser);
-            saveUsers();
-            setActiveUser(newUser);
-            enterApp();
-        });
+    function saveLocalData() {
+      localStorage.setItem('slsu_data', JSON.stringify(localData));
+    }
 
-        $('signInForm').addEventListener('submit', e => {
-            e.preventDefault();
-            const email = $('si_email').value.trim().toLowerCase();
-            const pass = $('si_pass').value;
-            const user = users.find(u => u.email === email && u.password === pass);
-            if (!user) return alert('Invalid login credentials');
-            setActiveUser(user);
-            enterApp();
-        });
+    // --- 4. AUTHENTICATION LOGIC ---
+    function initAuth() {
+      const authScreen = document.getElementById('auth-screen');
+      if (currentUser) {
+        authScreen.classList.add('hidden');
+        document.getElementById('user-display-name').textContent = currentUser.name;
+        renderAllSections();
+      } else {
+        authScreen.classList.remove('hidden');
+      }
+    }
 
-        $('signOutBtn').onclick = () => { clearActiveUser(); exitApp(); };
+    function toggleAuth(type) {
+      document.getElementById('login-form').classList.toggle('hidden', type === 'signup');
+      document.getElementById('signup-form').classList.toggle('hidden', type === 'login');
+    }
 
-        function enterApp() {
-            $('authPage').classList.add('hidden');
-            $('appPage').classList.remove('hidden');
-            $('greeting').textContent = `Hi, ${currentUser.name}!`;
-            renderLocalData();
-            loadSharedGroupsDropdown();
+    function handleLogin() {
+      const email = document.getElementById('login-email').value;
+      if (!email) return alert('Please enter your email.');
+      
+      currentUser = { name: email.split('@')[0], email: email };
+      localStorage.setItem('slsu_user', JSON.stringify(currentUser));
+      initAuth();
+    }
+
+    function handleSignup() {
+      const name = document.getElementById('signup-name').value;
+      const email = document.getElementById('signup-email').value;
+      if (!name || !email) return alert('Please fill in all fields.');
+
+      currentUser = { name: name, email: email };
+      localStorage.setItem('slsu_user', JSON.stringify(currentUser));
+      initAuth();
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('slsu_user');
+      currentUser = null;
+      location.reload();
+    }
+
+    // --- 5. NAVIGATION ---
+    function switchTab(tabId, element) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      element.classList.add('active');
+    }
+
+    // --- 6. SCHEDULE MANAGEMENT ---
+    function addScheduleItem() {
+      const subject = prompt('Enter Subject Name:');
+      const time = prompt('Enter Schedule (e.g., Mon/Wed 9:00 AM - 10:30 AM):');
+      const room = prompt('Enter Room/Platform:');
+
+      if (subject && time) {
+        localData.schedules.push({ id: Date.now(), subject, time, room });
+        saveLocalData();
+        renderSchedules();
+      }
+    }
+
+    function deleteSchedule(id) {
+      localData.schedules = localData.schedules.filter(s => s.id !== id);
+      saveLocalData();
+      renderSchedules();
+    }
+
+    function renderSchedules() {
+      const container = document.getElementById('schedule-grid');
+      container.innerHTML = localData.schedules.map(s => `
+        <div class="card">
+          <h3>${safeText(s.subject)}</h3>
+          <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.5rem;"><i class="fa-regular fa-clock"></i> ${safeText(s.time)}</p>
+          <p style="color:var(--text-muted); font-size:0.9rem;"><i class="fa-solid fa-location-dot"></i> ${safeText(s.room)}</p>
+          <button class="btn btn-secondary" style="margin-top:1rem; padding:0.4rem; font-size:0.8rem;" onclick="deleteSchedule(${s.id})">Delete</button>
+        </div>
+      `).join('');
+    }
+
+    // --- 7. DEADLINES MANAGEMENT ---
+    function addDeadlineItem() {
+      const title = prompt('Task/Assignment Title:');
+      const dueDate = prompt('Due Date (e.g., Oct 25, 11:59 PM):');
+
+      if (title && dueDate) {
+        localData.deadlines.push({ id: Date.now(), title, dueDate, completed: false });
+        saveLocalData();
+        renderDeadlines();
+      }
+    }
+
+    function toggleDeadline(id) {
+      const item = localData.deadlines.find(d => d.id === id);
+      if (item) {
+        item.completed = !item.completed;
+        saveLocalData();
+        renderDeadlines();
+      }
+    }
+
+    function deleteDeadline(id) {
+      localData.deadlines = localData.deadlines.filter(d => d.id !== id);
+      saveLocalData();
+      renderDeadlines();
+    }
+
+    function renderDeadlines() {
+      const container = document.getElementById('deadlines-grid');
+      container.innerHTML = localData.deadlines.map(d => `
+        <div class="card" style="opacity: ${d.completed ? 0.6 : 1}">
+          <h3 style="text-decoration: ${d.completed ? 'line-through' : 'none'}">${safeText(d.title)}</h3>
+          <p style="color:var(--text-muted); font-size:0.9rem; margin:0.5rem 0;"><i class="fa-regular fa-calendar"></i> ${safeText(d.dueDate)}</p>
+          <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+            <button class="btn" style="padding:0.4rem; font-size:0.8rem;" onclick="toggleDeadline(${d.id})">${d.completed ? 'Undo' : 'Complete'}</button>
+            <button class="btn btn-secondary" style="padding:0.4rem; font-size:0.8rem;" onclick="deleteDeadline(${d.id})">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // --- 8. REVIEWER PAD MANAGEMENT ---
+    function addReviewNote() {
+      const topic = prompt('Review Topic/Subject:');
+      const notes = prompt('Enter your main review points/notes:');
+
+      if (topic && notes) {
+        localData.reviewers.push({ id: Date.now(), topic, notes });
+        saveLocalData();
+        renderReviewers();
+      }
+    }
+
+    function deleteReviewer(id) {
+      localData.reviewers = localData.reviewers.filter(r => r.id !== id);
+      saveLocalData();
+      renderReviewers();
+    }
+
+    function renderReviewers() {
+      const container = document.getElementById('reviewer-grid');
+      container.innerHTML = localData.reviewers.map(r => `
+        <div class="card">
+          <h3>${safeText(r.topic)}</h3>
+          <p style="font-size:0.9rem; margin-top:0.75rem; white-space:pre-wrap;">${safeText(r.notes)}</p>
+          <button class="btn btn-secondary" style="margin-top:1rem; padding:0.4rem; font-size:0.8rem;" onclick="deleteReviewer(${r.id})">Delete Note</button>
+        </div>
+      `).join('');
+    }
+
+    // --- 9. REALTIME GROUP WORKSPACE (FIREBASE) ---
+    function createWorkspace() {
+      const title = prompt('Enter Group Workspace Name:');
+      if (!title) return;
+
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const wsRef = db.ref('workspaces/' + code);
+      
+      wsRef.set({
+        title: title,
+        code: code,
+        tasks: {}
+      }).then(() => {
+        joinWorkspaceByCode(code);
+      }).catch(err => {
+        alert("Error creating workspace: " + err.message);
+      });
+    }
+
+    function joinWorkspace() {
+      const code = prompt('Enter Room Code:');
+      if (code) joinWorkspaceByCode(code.trim().toUpperCase());
+    }
+
+    function joinWorkspaceByCode(code) {
+      currentWorkspaceId = code;
+      
+      db.ref('workspaces/' + code).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+          alert('Workspace not found!');
+          leaveWorkspace();
+          return;
         }
 
-        function exitApp() {
-            $('appPage').classList.add('hidden');$('authPage').classList.remove('hidden');
-        }
+        document.getElementById('ws-title').textContent = data.title;
+        document.getElementById('ws-code').textContent = data.code;
+        document.getElementById('active-workspace').classList.remove('hidden');
 
-        // LOCAL APP DATA (Schedule, Deadlines, Reviewer)
-        function renderLocalData() {
-            const sList = $('scheduleList');
-            sList.innerHTML = (currentUser.schedule || []).map((s, i) => `
-                <div class="item">
-                    <div><strong>${s.subject}</strong><br>${s.day} • ${s.time}</div>
-                    <button class="btn delete-btn" onclick="deleteSchedule(${i})">×</button>
-                </div>
-            `).join('') || '<p class="empty">No classes added yet.</p>';
+        renderWorkspaceTasks(data.tasks || {});
+      });
+    }
 
-            const dList = $('deadlineList');
-            dList.innerHTML = (currentUser.deadlines || []).map((d, i) => `
-                <div class="item">
-                    <div><strong>${d.title}</strong><br>Due: ${fmtDate(d.duedate)}</div>
-                    <button class="btn delete-btn" onclick="deleteDeadline(${i})">×</button>
-                </div>
-            `).join('') || '<p class="empty">No deadlines added yet.</p>';
+    function leaveWorkspace() {
+      if (currentWorkspaceId) {
+        db.ref('workspaces/' + currentWorkspaceId).off();
+      }
+      currentWorkspaceId = null;
+      document.getElementById('active-workspace').classList.add('hidden');
+    }
 
-            const rList = $('reviewerList');
-            rList.innerHTML = (currentUser.reviewers || []).map((r, i) => `
-                <div class="item" style="flex-direction:column;align-items:stretch;">
-                    <div style="display:flex;justify-content:space-between;">
-                        <div><strong>${r.topic}</strong> (${r.subject})</div>
-                        <button class="btn delete-btn" onclick="deleteReviewer(${i})">×</button>
-                    </div>
-                    <div style="margin-top:.3rem; font-size:.9rem;">${r.notes}</div>
-                </div>
-            `).join('') || '<p class="empty">No study notes saved.</p>';
-        }
+    function addWorkspaceTask() {
+      const input = document.getElementById('ws-task-input');
+      const taskText = input.value.trim();
+      if (!taskText || !currentWorkspaceId) return;
 
-        function updateUserData() {
-            const idx = users.findIndex(u => u.id === currentUser.id);
-            if (idx !== -1) { users[idx] = currentUser; saveUsers(); setActiveUser(currentUser); }
-        }
+      const newTaskRef = db.ref(`workspaces/${currentWorkspaceId}/tasks`).push();
+      newTaskRef.set({
+        text: taskText,
+        completed: false,
+        assignedTo: currentUser.name
+      });
 
-        window.deleteSchedule = i => { currentUser.schedule.splice(i,1); updateUserData(); renderLocalData(); };
-        window.deleteDeadline = i => { currentUser.deadlines.splice(i,1); updateUserData(); renderLocalData(); };
-        window.deleteReviewer = i => { currentUser.reviewers.splice(i,1); updateUserData(); renderLocalData(); };
+      input.value = '';
+    }
 
-        $('scheduleForm').onsubmit = e => {
-            e.preventDefault(); const fd = new FormData(e.target);
-            if(!currentUser.schedule) currentUser.schedule = [];
-            currentUser.schedule.push({ subject: fd.get('subject'), day: fd.get('day'), time: fd.get('time') });
-            updateUserData(); renderLocalData(); e.target.reset();
-        };
+    function toggleWorkspaceTask(taskId, currentStatus) {
+      if (!currentWorkspaceId) return;
+      db.ref(`workspaces/${currentWorkspaceId}/tasks/${taskId}`).update({
+        completed: !currentStatus
+      });
+    }
 
-        $('deadlineForm').onsubmit = e => {
-            e.preventDefault(); const fd = new FormData(e.target);
-            if(!currentUser.deadlines) currentUser.deadlines = [];
-            currentUser.deadlines.push({ title: fd.get('title'), duedate: fd.get('duedate') });
-            updateUserData(); renderLocalData(); e.target.reset();
-        };
+    function renderWorkspaceTasks(tasksObj) {
+      const container = document.getElementById('ws-tasks-list');
+      const tasks = Object.entries(tasksObj);
+      
+      if (tasks.length === 0) {
+        container.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No shared tasks added yet.</p>`;
+        document.getElementById('ws-progress').style.width = '0%';
+        return;
+      }
 
-        $('reviewerForm').onsubmit = e => {
-            e.preventDefault(); const fd = new FormData(e.target);
-            if(!currentUser.reviewers) currentUser.reviewers = [];
-            currentUser.reviewers.push({ subject: fd.get('rev_subject'), topic: fd.get('rev_topic'), notes: fd.get('rev_notes'), priority: fd.get('rev_priority') });
-            updateUserData(); renderLocalData(); e.target.reset();
-        };
+      let completedCount = 0;
+      container.innerHTML = tasks.map(([id, task]) => {
+        if (task.completed) completedCount++;
+        return `
+          <div class="task-item">
+            <div>
+              <span style="text-decoration: ${task.completed ? 'line-through' : 'none'}">${safeText(task.text)}</span>
+              <br><small style="color:var(--text-muted);">Added by: ${safeText(task.assignedTo)}</small>
+            </div>
+            <button class="btn ${task.completed ? 'btn-secondary' : ''}" style="width:auto; padding:0.3rem 0.6rem; font-size:0.8rem;" onclick="toggleWorkspaceTask('${id}', ${task.completed})">
+              ${task.completed ? 'Done' : 'Mark Done'}
+            </button>
+          </div>
+        `;
+      }).join('');
 
-        // NAVIGATION
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.onclick = () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.section').forEach(s => s.classList.remove('show'));
-                tab.classList.add('active');
-                $(tab.dataset.sec).classList.add('show');
-            };
-        });
+      const percent = Math.round((completedCount / tasks.length) * 100);
+      document.getElementById('ws-progress').style.width = percent + '%';
+    }
 
-        // ONLINE FIREBASE REALTIME GROUP TASKS
-        let activeGroupCode = null;
-        let activeGroupRef = null;
+    // --- 10. INITIALIZATION ---
+    function renderAllSections() {
+      renderSchedules();
+      renderDeadlines();
+      renderReviewers();
+    }
 
-        function hideGroupForms() {
-            $('createGroupForm').classList.add('hidden');$('joinGroupForm').classList.add('hidden');
-        }
-        $('btnShowCreateGroup').onclick = () => { hideGroupForms();$('createGroupForm').classList.remove('hidden'); };
-        $('btnShowJoinGroup').onclick = () => { hideGroupForms();$('joinGroupForm').classList.remove('hidden'); };
-
-        // Create Group on Firebase
-        $('createGroupForm').onsubmit = e => {
-            e.preventDefault();
-            const gName = $('newGroupName').value.trim();
-            const gCode = genCode();
-
-            const groupData = {
-                code: gCode,
-                name: gName,
-                members: [{ name: currentUser.name, email: currentUser.email }],
-                tasks: [],
-                logs: [`Group created by ${currentUser.name}`]
-            };
-
-            db.ref('groups/' + gCode).set(groupData).then(() => {
-                if (!currentUser.joinedGroupCodes) currentUser.joinedGroupCodes = [];
-                currentUser.joinedGroupCodes.push(gCode);
-                updateUserData();
-                hideGroupForms();
-                loadSharedGroupsDropdown();
-                selectGroup(gCode);
-            }).catch(err => alert("Firebase Sync Error: Siguraduhing naka-enable ang Realtime Database sa Firebase Console."));
-        };
-
-        // Join Group on Firebase
-        $('joinGroupForm').onsubmit = e => {
-            e.preventDefault();
-            const inputCode = $('joinGroupCode').value.trim().toUpperCase();
-
-            db.ref('groups/' + inputCode).once('value').then(snapshot => {
-                if (!snapshot.exists()) {
-                    alert('Hindi nahanap ang Group Code! Paki-check ang code at subukan ulit.');
-                    return;
-                }
-
-                const group = snapshot.val();
-                const members = group.members || [];
-                if (!members.some(m => m.email === currentUser.email)) {
-                    members.push({ name: currentUser.name, email: currentUser.email });
-                    const logs = group.logs || [];
-                    logs.unshift(`${currentUser.name} joined the online workspace.`);
-                    db.ref('groups/' + inputCode).update({ members, logs });
-                }
-
-                if (!currentUser.joinedGroupCodes) currentUser.joinedGroupCodes = [];
-                if (!currentUser.joinedGroupCodes.includes(inputCode)) {
-                    currentUser.joinedGroupCodes.push(inputCode);
-                    updateUserData();
-                }
-
-                hideGroupForms();
-                loadSharedGroupsDropdown();
-                selectGroup(inputCode);
-            });
-        };
-
-        // Load dropdown options
-        function loadSharedGroupsDropdown() {
-            const dropdown = $('groupDropdown');
-            dropdown.innerHTML = '<option value="">-- Select a Group Project --</option>';
-
-            const codes = currentUser.joinedGroupCodes || [];
-            codes.forEach(code => {
-                db.ref('groups/' + code + '/name').once('value').then(snap => {
-                    if (snap.exists()) {
-                        const opt = document.createElement('option');
-                        opt.value = code;
-                        opt.textContent = `${snap.val()} (${code})`;
-                        dropdown.appendChild(opt);
-                    }
-                });
-            });
-        }
-
-        $('groupDropdown').onchange = e => {
-            if (e.target.value) selectGroup(e.target.value);
-            else {
-                if (activeGroupRef) activeGroupRef.off();
-                $('activeGroupWorkspace').classList.add('hidden');
-            }
-        };
-
-        // Listen for Real-Time Updates from Firebase
-        function selectGroup(code) {
-            if (activeGroupRef) activeGroupRef.off();
-
-            activeGroupCode = code;
-            $('groupDropdown').value = code;
-            activeGroupRef = db.ref('groups/' + code);
-
-            activeGroupRef.on('value', snapshot => {
-                const group = snapshot.val();
-                if (group) renderLiveWorkspace(group);
-            });
-        }
-
-        function renderLiveWorkspace(group) {
-            $('activeGroupWorkspace').classList.remove('hidden');$('displayGroupName').textContent = group.name;
-            $('displayGroupCode').textContent = `CODE: ${group.code}`;
-
-            const assigneeSel = $('assigneeSelect');
-            assigneeSel.innerHTML = '<option value="">-- Assign To Member --</option>';
-            (group.members || []).forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m.name;
-                opt.textContent = m.name + (m.email === currentUser.email ? ' (You)' : '');
-                assigneeSel.appendChild(opt);
-            });
-
-            const tasks = group.tasks || [];
-            const taskList = $('taskList');
-            if (!tasks.length) {
-                taskList.innerHTML = '<p class="empty">No tasks in this workspace yet.</p>';
-            } else {
-                taskList.innerHTML = tasks.map((t, i) => `
-                    <div class="item" style="flex-direction:column; align-items:stretch;">
-                        <div style="display:flex; justify-content:space-between;">
-                            <div>
-                                <strong>${t.task}</strong>
-                                <span class="label ${t.status==='Done'?'label-done':(t.status==='In Progress'?'label-progress':'label-pending')}">${t.status}</span>
-                                <div style="font-size:.8rem; color:var(--muted); margin-top:.2rem;">Assigned to: <b>${t.assignee}</b></div>
-                            </div>
-                            <button class="btn delete-btn" onclick="deleteLiveTask(${i})">×</button>
-                        </div>
-                        <div style="margin-top:.5rem; display:flex; gap:.5rem; align-items:center;">
-                            <span style="font-size:.75rem; color:var(--muted);">Update Status:</span>
-                            <select onchange="updateLiveStatus(${i}, this.value)" style="padding:.2rem .4rem; font-size:.8rem; width:auto;">
-                                <option value="Not Started" ${t.status === 'Not Started' ? 'selected' : ''}>Not Started</option>
-                                <option value="In Progress" ${t.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
-                                <option value="Done" ${t.status === 'Done' ? 'selected' : ''}>Done</option>
-                            </select>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            const done = tasks.filter(t => t.status === 'Done').length;
-            const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
-            $('progressPercent').textContent = `${pct}%`;
-            $('progressBarFill').style.width = `${pct}%`;
-
-            $('activityLog').innerHTML = (group.logs || []).map(l => `<div class="activity-item">• ${l}</div>`).join('') || '<p class="empty">No logs.</p>';
-        }
-
-        // Real-Time Task Actions
-        $('taskForm').onsubmit = e => {
-            e.preventDefault();
-            const fd = new FormData(e.target);
-            db.ref('groups/' + activeGroupCode).once('value').then(snap => {
-                const group = snap.val();
-                const tasks = group.tasks || [];
-                const logs = group.logs || [];
-
-                const newTask = fd.get('task');
-                const assignee = fd.get('assignee');
-                tasks.push({ task: newTask, assignee, status: fd.get('status') });
-                logs.unshift(`${currentUser.name} added task "${newTask}" for ${assignee}.`);
-
-                db.ref('groups/' + activeGroupCode).update({ tasks, logs });
-                e.target.reset();
-            });
-        };
-
-        window.updateLiveStatus = (i, status) => {
-            db.ref('groups/' + activeGroupCode).once('value').then(snap => {
-                const group = snap.val();
-                const tasks = group.tasks || [];
-                const logs = group.logs || [];
-
-                const oldStatus = tasks[i].status;
-                tasks[i].status = status;
-                logs.unshift(`${currentUser.name} changed status of "${tasks[i].task}" to ${status}.`);
-
-                db.ref('groups/' + activeGroupCode).update({ tasks, logs });
-            });
-        };
-
-        window.deleteLiveTask = i => {
-            db.ref('groups/' + activeGroupCode).once('value').then(snap => {
-                const group = snap.val();
-                const tasks = group.tasks || [];
-                const logs = group.logs || [];
-
-                const removed = tasks.splice(i, 1)[0];
-                logs.unshift(`${currentUser.name} deleted task "${removed.task}".`);
-
-                db.ref('groups/' + activeGroupCode).update({ tasks, logs });
-            });
-        };
-
-        function leaveCurrentGroup() {
-            if (activeGroupRef) activeGroupRef.off();
-            currentUser.joinedGroupCodes = currentUser.joinedGroupCodes.filter(c => c !== activeGroupCode);
-            updateUserData();
-            activeGroupCode = null;
-            $('activeGroupWorkspace').classList.add('hidden');
-            loadSharedGroupsDropdown();
-        }
-
-        if (currentUser) enterApp();
-    </script>
+    // Start App
+    initAuth();
+  </script>
 </body>
 </html>
